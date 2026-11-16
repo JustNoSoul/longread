@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Данила Соловьев">
+<meta name="description" content="Лонгрид о децентрализованном хранении данных в культуре и искусстве">
+<title>Память без единого сервера</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prata&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: одна колонка чтения ~66ch, слева на широких экранах — липкое оглавление; медиа-блоки выходят шире колонки */
+:root{
+  --bg:#eef2f0;          /* стена музейного зала, холодный серо-зелёный */
+  --paper:#f8faf9;
+  --ink:#14211f;
+  --muted:#56655f;
+  --line:#cfd9d5;
+  --patina:#2b7a67;      /* патина бронзы — основной акцент */
+  --patina-soft:#d7ebe4;
+  --brass:#9a7531;       /* латунь табличек — второстепенный */
+  --alert:#b5473a;
+  --display:"Prata","PT Serif",Georgia,serif;
+  --body:"Golos Text","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --measure:66ch;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1715;--paper:#15201d;--ink:#e3ebe8;--muted:#97a8a2;--line:#2a3a36;
+  --patina:#5fb8a2;--patina-soft:#1d3a33;--brass:#d2ae62;--alert:#e07a6c;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1715;--paper:#15201d;--ink:#e3ebe8;--muted:#97a8a2;--line:#2a3a36;
+  --patina:#5fb8a2;--patina-soft:#1d3a33;--brass:#d2ae62;--alert:#e07a6c;color-scheme:dark}
+*{box-sizing:border-box}
+img{max-width:100%}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+a{color:var(--patina);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+h1,h2,h3{font-family:var(--display);font-weight:400;text-wrap:balance;line-height:1.2;margin:0}
+h2{font-size:clamp(28px,4vw,40px)}
+h3{font-size:22px}
+p{margin:0}
+.mono{font-family:var(--mono)}
+.progress{position:fixed;top:env(safe-area-inset-top,0px);left:0;height:3px;background:var(--patina);width:0;z-index:20}
+
+/* шапка */
+.hero{max-width:1120px;margin:0 auto;padding-block:48px 40px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:40px;align-items:center}
+.eyebrow{font-family:var(--mono);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass)}
+.hero h1{font-size:clamp(40px,6.2vw,72px);margin-block:14px 20px}
+.lead{font-size:21px;color:var(--muted);max-width:34ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:24px;font-size:14px;color:var(--muted)}
+.meta b{color:var(--ink);font-weight:500}
+.hero-art{position:relative;aspect-ratio:1/1;max-width:100%;border:1px solid var(--line);background:var(--paper)}
+.hero-art canvas{width:100%;height:100%;display:block}
+.hero-art .label{position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* сетка чтения */
+.wrap{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:240px minmax(0,1fr);gap:56px}
+nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:15px;padding-block:8px}
+.toc h2{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px;counter-reset:t}
+.toc li{counter-increment:t}
+.toc a{display:grid;grid-template-columns:2.2em 1fr;padding:5px 8px;border-left:2px solid var(--line);color:var(--muted);text-decoration:none;line-height:1.35}
+.toc a::before{content:counter(t,decimal-leading-zero);font-family:var(--mono);font-size:12px;padding-top:2px}
+.toc a:hover{color:var(--ink)}
+.toc a.on{color:var(--ink);border-left-color:var(--patina)}
+.toc-mobile{display:none}
+main{min-width:0;padding-bottom:80px}
+section.chapter{padding-block:48px;border-top:1px solid var(--line)}
+section.chapter:first-of-type{border-top:0;padding-top:8px}
+.chapter-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px 24px;margin-bottom:24px;max-width:var(--measure)}
+.chapter-head .num{font-family:var(--mono);font-size:13px;color:var(--brass);letter-spacing:.08em;width:100%}
+.text{max-width:var(--measure);display:grid;gap:18px}
+.text p{hyphens:auto}
+.text ul{margin:0;padding-left:1.2em;display:grid;gap:8px}
+.text li::marker{color:var(--patina)}
+.pull{font-family:var(--display);font-size:26px;line-height:1.35;color:var(--patina);border-left:3px solid var(--brass);padding:4px 0 4px 20px;max-width:var(--measure)}
+.cite{font-size:13px;vertical-align:super;line-height:0}
+.cite a{text-decoration:none}
+
+/* кнопка озвучки */
+.listen{display:inline-flex;align-items:center;gap:8px;font:500 14px var(--body);color:var(--patina);background:transparent;border:1px solid var(--patina);border-radius:999px;padding:6px 14px;cursor:pointer}
+.listen:hover{background:var(--patina-soft)}
+.listen[aria-pressed="true"]{background:var(--patina);color:var(--paper)}
+.listen svg{width:14px;height:14px;fill:currentColor}
+.listen[disabled]{opacity:.5;cursor:not-allowed}
+
+/* медиа и фигуры */
+figure{margin:32px 0 0;max-width:780px}
+figure.wide{max-width:none}
+figcaption{font-size:14px;color:var(--muted);margin-top:10px;max-width:var(--measure)}
+figcaption b{font-family:var(--mono);font-weight:500;color:var(--brass);font-size:12px;letter-spacing:.06em;margin-right:6px}
+.plate{background:#ffffff;border:1px solid var(--line);padding:14px}
+.plate img{display:block;width:100%;height:auto}
+video{display:block;width:100%;max-width:100%;aspect-ratio:16/9;background:#0f1715;border:1px solid var(--line)}
+.panel{background:var(--paper);border:1px solid var(--line);padding:20px}
+
+/* числа */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:28px;max-width:780px}
+.stat{background:var(--paper);padding:18px}
+.stat .v{font-family:var(--display);font-size:34px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .k{font-size:14px;color:var(--muted);margin-top:6px}
+
+/* хеш-демо */
+.hashdemo label{font-size:14px;color:var(--muted);display:block;margin-bottom:6px}
+.hashdemo input{width:100%;font:16px var(--mono);padding:10px 12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.hashrow{margin-top:14px;display:grid;gap:6px}
+.hashrow .h{font-family:var(--mono);font-size:14px;word-break:break-all;line-height:1.6}
+.hashrow .h span.diff{background:var(--patina-soft);color:var(--patina)}
+.hashnote{font-size:14px;color:var(--muted);margin-top:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{font:13px var(--body);border:1px solid var(--line);background:transparent;color:var(--ink);padding:5px 10px;border-radius:999px;cursor:pointer}
+.chip:hover{border-color:var(--patina)}
+
+/* симуляция */
+.sim{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:20px;align-items:start}
+.sim svg{width:100%;height:auto;display:block}
+.sim .side{display:grid;gap:12px;font-size:15px}
+.status{padding:12px;border:1px solid var(--line);font-weight:500}
+.status.ok{border-color:var(--patina);color:var(--patina)}
+.status.bad{border-color:var(--alert);color:var(--alert)}
+.blocks{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.blk{font:12px var(--mono);text-align:center;padding:6px 2px;border:1px solid var(--line)}
+.blk.ok{background:var(--patina-soft);border-color:var(--patina)}
+.blk.lost{border-color:var(--alert);color:var(--alert)}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font:500 14px var(--body);padding:8px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+.btn:hover{background:var(--patina-soft)}
+.seg{display:flex;border:1px solid var(--line)}
+.seg button{flex:1;font:14px var(--body);padding:8px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.node{cursor:pointer}
+.node circle{transition:fill .2s,stroke .2s}
+
+/* таблица */
+.tablewrap{overflow-x:auto;margin-top:28px;max-width:860px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+td:first-child{font-weight:600;white-space:nowrap}
+
+/* графики */
+.chart text{fill:var(--ink);font-family:var(--body)}
+.chart .mutedt{fill:var(--muted)}
+.chart .grid{stroke:var(--line)}
+
+/* таймлайн */
+.timeline{list-style:none;margin:28px 0 0;padding:0;max-width:780px;display:grid;gap:0}
+.timeline li{display:grid;grid-template-columns:110px minmax(0,1fr);gap:20px;padding:16px 0;border-top:1px solid var(--line)}
+.timeline .d{font-family:var(--mono);font-size:14px;color:var(--brass)}
+.timeline .tag{display:inline-block;font:12px var(--mono);padding:2px 8px;margin-left:8px;border:1px solid currentColor;border-radius:999px;vertical-align:2px}
+.tag.risk{color:var(--alert)}.tag.case{color:var(--patina)}.tag.art{color:var(--brass)}
+.timeline p{font-size:16px;color:var(--muted);margin-top:4px}
+.timeline h3{font-family:var(--body);font-size:17px;font-weight:600}
+
+/* выводы и ссылки */
+.conclusions{list-style:none;padding:0;margin:0;display:grid;gap:14px;max-width:var(--measure);counter-reset:c}
+.conclusions li{counter-increment:c;display:grid;grid-template-columns:2.4em 1fr;gap:8px}
+.conclusions li::before{content:counter(c);font-family:var(--display);font-size:26px;color:var(--patina);line-height:1.2}
+.reading{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;margin-top:20px}
+.reading h3{font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);margin-bottom:12px}
+.reading ul{list-style:none;margin:0;padding:0;display:grid;gap:14px;font-size:15px}
+.reading li span{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+footer{max-width:1120px;margin:0 auto;padding-block:32px 48px;border-top:1px solid var(--line);font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+
+@media (max-width:960px){
+  .wrap{grid-template-columns:minmax(0,1fr);gap:0}
+  nav.toc{display:none}
+  .toc-mobile{display:block;margin-bottom:8px;border:1px solid var(--line);background:var(--paper)}
+  .toc-mobile summary{padding:12px 16px;cursor:pointer;font-weight:500}
+  .toc-mobile ol{margin:0;padding:0 16px 14px 36px;display:grid;gap:6px}
+  .reading{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:760px){
+  body{font-size:17px}
+  .hero{grid-template-columns:minmax(0,1fr);padding-top:28px}
+  .hero-art{aspect-ratio:16/10}
+  .sim{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:minmax(0,1fr)}
+  .timeline li{grid-template-columns:minmax(0,1fr);gap:4px}
+  .pull{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="hero">
+  <div>
+    <div class="eyebrow">Лонгрид · Интернет-технологии · Web 3.0</div>
+    <h1>Память без единого сервера</h1>
+    <p class="lead">Как децентрализованное хранение данных помогает музеям, архивам и художникам сохранить цифровое наследие.</p>
+    <div class="meta">
+      <span>Автор: <b>Данила Соловьев</b>, ИДМ-26-01</span>
+      <span>Чтение: <b>≈ 20 минут</b></span>
+      <span>Внутри: видео, интерактив, графики, озвучка</span>
+    </div>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <canvas id="heroNet"></canvas>
+    <div class="label">узлы сети хранения · копии блоков</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Содержание">
+    <h2>Содержание</h2>
+    <ol id="tocList"></ol>
+  </nav>
+
+  <main>
+    <details class="toc-mobile">
+      <summary>Содержание</summary>
+      <ol id="tocMobile"></ol>
+    </details>
+
+    <!-- 1 -->
+    <section class="chapter" id="fragile" data-title="Почему цифровая память хрупка">
+      <div class="chapter-head"><span class="num">Глава 1</span><h2>Почему цифровая память хрупка</h2><button class="listen" type="button" data-target="fragile"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Слушать главу</button></div>
+      <div class="text">
+        <p>Музеи, библиотеки и архивы хранят коллективную память общества. Сегодня эта память всё чаще существует в цифровом виде: сканы картин и рукописей, 3D-модели скульптур, видеозаписи спектаклей, аудиоархивы, цифровое искусство. Объёмы растут стремительно. В октябре 2025 года некоммерческий Internet Archive сообщил, что его веб-архив Wayback Machine сохранил триллион веб-страниц<span class="cite"><a href="#src">[1]</a></span>.</p>
+        <p>При этом почти всё цифровое наследие устроено одинаково. Файл лежит на конкретном сервере конкретной организации, а ссылка указывает на место, где он лежит. Если сервер выключили, адрес сменился или организация закрылась, ссылка ведёт в пустоту. Такую ссылку называют «битой», а сам процесс — гниением ссылок (link rot).</p>
+        <p class="pull">Цифровая копия надёжна ровно настолько, насколько надёжен единственный сервер, на котором она хранится.</p>
+        <p>Последние годы показали, что это не теоретический риск. В октябре 2023 года Британская библиотека, одна из крупнейших в мире, подверглась атаке программы-вымогателя группировки Rhysida. Часть серверов была уничтожена, похищенные данные опубликованы, а восстановление онлайн-каталога и цифровых сервисов растянулось на многие месяцы<span class="cite"><a href="#src">[2]</a></span>. Через год пострадал сам Internet Archive. В октябре 2024 года стало известно об утечке данных около 31 миллиона учётных записей, а DDoS-атаки на время сделали недоступными сайт архива и Wayback Machine<span class="cite"><a href="#src">[3]</a></span>.</p>
+        <p>Обе истории говорят об одном: когда наследие сосредоточено в одном учреждении или одном центре обработки данных, любая авария становится аварией для всей коллекции. Вопрос не в том, случится ли сбой, а в том, переживут ли его данные.</p>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="chapter" id="web3" data-title="Web 3.0: от адреса места к адресу содержимого">
+      <div class="chapter-head"><span class="num">Глава 2</span><h2>Web 3.0: от адреса места к адресу содержимого</h2><button class="listen" type="button" data-target="web3"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Слушать главу</button></div>
+      <div class="text">
+        <p>Интернет стал инфраструктурой повседневной жизни. По данным Международного союза электросвязи, в 2025 году им пользовались около 6 миллиардов человек, то есть примерно три четверти населения Земли<span class="cite"><a href="#src">[4]</a></span>. Данных становится всё больше. По прогнозу IDC, глобальная «датасфера» должна была вырасти с 33 зеттабайт в 2018 году до 175 зеттабайт к 2025 году, причём почти половину хранимых данных предполагалось размещать в публичных облаках<span class="cite"><a href="#src">[5]</a></span>.</p>
+        <p>Эволюцию Всемирной паутины обычно описывают тремя этапами. Web 1.0 был «сетью для чтения» со статичными страницами. Web 2.0 стал «сетью для чтения и записи»: социальные сети, облака и пользовательский контент, но данные принадлежат платформам. Термин Web 3.0 в современном значении предложил в 2014 году сооснователь Ethereum Гэвин Вуд. Он описал сеть, в которой доверие обеспечивает не организация, а математика: публичные данные публикуются, согласованные данные попадают в общий реестр, а частные остаются частными<span class="cite"><a href="#src">[6]</a></span>.</p>
+        <p>Одно из ключевых направлений Web 3.0 — децентрализация хранения данных. Информация распределяется между множеством независимых узлов одноранговой сети, а её целостность подтверждают криптографические механизмы, а не доверие к единственному оператору. Главный приём здесь — смена способа адресации. Вместо вопроса «где лежит файл?» сеть задаёт вопрос «что это за файл?».</p>
+      </div>
+      <div class="stats" role="list">
+        <div class="stat" role="listitem"><div class="v">≈ 6 млрд</div><div class="k">пользователей Интернета в 2025 г. (МСЭ)</div></div>
+        <div class="stat" role="listitem"><div class="v">175 ЗБ</div><div class="k">прогноз объёма данных к 2025 г. (IDC)</div></div>
+        <div class="stat" role="listitem"><div class="v">1 трлн</div><div class="k">веб-страниц в Wayback Machine, октябрь 2025 г.</div></div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="chapter" id="how" data-title="Как это работает: хеш вместо адреса">
+      <div class="chapter-head"><span class="num">Глава 3</span><h2>Как это работает: хеш вместо адреса</h2><button class="listen" type="button" data-target="how"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Слушать главу</button></div>
+      <div class="text">
+        <p>Самая известная система децентрализованного хранения — протокол IPFS (InterPlanetary File System). Его описал Хуан Бенет в 2014 году<span class="cite"><a href="#src">[7]</a></span>. Файл разбивается на блоки (по умолчанию около 256 КиБ). Для каждого блока вычисляется криптографический хеш, а блоки связываются в граф Меркла. Хеш корневого узла становится идентификатором содержимого, CID (Content Identifier).</p>
+        <p>У такого идентификатора есть важное свойство: он зависит только от содержимого. Измените в скане картины хотя бы один пиксель, и CID станет другим. Получив файл по CID, любой пользователь может сам проверить, что ему не подсунули подделку. Попробуйте ниже: хеш-функция SHA-256, на которой по умолчанию строятся CID в IPFS, превращает любой текст в «отпечаток» фиксированной длины.</p>
+      </div>
+      <figure>
+        <div class="panel hashdemo">
+          <label for="hashInput">Описание экспоната (измените любой символ)</label>
+          <input id="hashInput" type="text" value="Леонардо да Винчи. Мадонна Литта. Около 1490 г. Государственный Эрмитаж" autocomplete="off" spellcheck="false">
+          <div class="chips" aria-label="Примеры правок">
+            <button class="chip" type="button" data-edit="dot">Убрать точку в конце</button>
+            <button class="chip" type="button" data-edit="year">Изменить год на 1491</button>
+            <button class="chip" type="button" data-edit="reset">Вернуть исходный текст</button>
+          </div>
+          <div class="hashrow">
+            <div><span class="eyebrow">SHA-256 исходного описания</span><div class="h" id="hashBase">…</div></div>
+            <div><span class="eyebrow">SHA-256 текущего текста</span><div class="h" id="hashNow" aria-live="polite">…</div></div>
+          </div>
+          <p class="hashnote" id="hashNote">Подсвечены символы хеша, которые изменились.</p>
+        </div>
+        <figcaption><b>ИНТЕРАКТИВ 1</b>Контентная адресация в действии: малая правка содержимого полностью меняет его «отпечаток».</figcaption>
+      </figure>
+      <div class="text" style="margin-top:28px">
+        <p>Чтобы найти, у кого лежат нужные блоки, IPFS использует распределённую хеш-таблицу на основе алгоритма Kademlia, где «расстояние» между идентификаторами вычисляется операцией XOR<span class="cite"><a href="#src">[8]</a></span>. Сеть давно вышла за рамки эксперимента. Исследование, представленное на конференции ACM SIGCOMM в 2022 году, показало, что публичная сеть IPFS присутствует более чем в 2 700 автономных системах в 152 странах. Большая часть узлов работает вне крупных облачных платформ, а сеть обслуживает миллионы запросов в день<span class="cite"><a href="#src">[9]</a></span>.</p>
+      </div>
+      <figure>
+        <div class="plate"><img src="img/cid.jpg" alt="Схема: исходный файл разбивается на блоки по 256 КиБ, для каждого блока вычисляется хеш, хеши объединяются в граф Меркла, корневой узел даёт CID, который публикуется в распределённой хеш-таблице" width="1057" height="1167" loading="lazy" style="max-width:520px;margin:0 auto"></div>
+        <figcaption><b>РИС. 1</b>Как формируется CID и как файл публикуется в IPFS. По материалам [7, 9].</figcaption>
+      </figure>
+    </section>
+
+    <!-- 4 -->
+    <section class="chapter" id="video" data-title="Видео: путь файла за 30 секунд">
+      <div class="chapter-head"><span class="num">Глава 4</span><h2>Видео: путь файла за 30 секунд</h2></div>
+      <div class="text"><p>Короткий ролик сводит главы 1–3 в одну историю: что происходит с коллекцией при сбое единственного сервера и почему сеть независимых узлов переживает отказ части участников.</p></div>
+      <figure class="wide">
+        <video controls preload="metadata" poster="img/poster.jpg" playsinline aria-describedby="videoDesc">
+          <source src="img/explainer.mp4" type="video/mp4">
+          Ваш браузер не поддерживает встроенное видео.
+        </video>
+        <figcaption id="videoDesc"><b>ВИДЕО</b>Пять сцен: один сервер как точка отказа, разбиение файла на блоки и CID, сеть из семи узлов, отказ двух узлов, итог. Музыкальное сопровождение синтезировано для ролика.</figcaption>
+      </figure>
+    </section>
+
+    <!-- 5 -->
+    <section class="chapter" id="sim" data-title="Проверьте сами: отключите узлы">
+      <div class="chapter-head"><span class="num">Глава 5</span><h2>Проверьте сами: отключите узлы</h2><button class="listen" type="button" data-target="sim"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Слушать главу</button></div>
+      <div class="text">
+        <p>Ниже — модель небольшой сети хранения. Оцифрованная коллекция разбита на четыре блока, и каждый блок хранится у трёх независимых участников: музеев, библиотеки, университета, архива. Нажимайте на узлы, чтобы отключать и включать их, и следите, сохраняется ли коллекция. Затем переключитесь на централизованную модель и сравните.</p>
+      </div>
+      <figure class="wide">
+        <div class="panel sim">
+          <svg id="simSvg" viewBox="0 0 520 420" role="group" aria-label="Сеть хранения: нажмите на узел, чтобы отключить или включить его"></svg>
+          <div class="side">
+            <div class="seg" role="group" aria-label="Модель хранения">
+              <button type="button" id="modeP2P" aria-pressed="true">Децентрализованная</button>
+              <button type="button" id="modeCentral" aria-pressed="false">Один сервер</button>
+            </div>
+            <div class="status ok" id="simStatus" aria-live="polite">Коллекция доступна полностью</div>
+            <div>
+              <div class="eyebrow" style="margin-bottom:6px">Блоки коллекции</div>
+              <div class="blocks" id="simBlocks"></div>
+            </div>
+            <div id="simInfo" style="color:var(--muted);font-size:14px">Отключено узлов: 0 из 8</div>
+            <div class="btnrow">
+              <button class="btn" type="button" id="simRandom">Случайный сбой</button>
+              <button class="btn" type="button" id="simReset">Включить все</button>
+            </div>
+          </div>
+        </div>
+        <figcaption><b>ИНТЕРАКТИВ 2</b>Каждый блок хранится в трёх копиях. Коллекция теряется, только если отключены все три хранителя хотя бы одного блока.</figcaption>
+      </figure>
+      <div class="text" style="margin-top:28px">
+        <p>Модель упрощена, но принцип тот же, что в реальных сетях. Надёжность обеспечивает не один «сверхнадёжный» сервер, а избыточность: копии у независимых участников в разных местах и под разным управлением. Сети Storj и Sia идут дальше и используют помехоустойчивое кодирование. Файл шифруется на стороне клиента и делится на фрагменты, из которых для восстановления достаточно лишь части. В документации Storj приводится пример: из 80 фрагментов достаточно любых 29<span class="cite"><a href="#src">[10]</a></span>.</p>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="chapter" id="economy" data-title="Кто и почему хранит чужие данные">
+      <div class="chapter-head"><span class="num">Глава 6</span><h2>Кто и почему хранит чужие данные</h2><button class="listen" type="button" data-target="economy"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Слушать главу</button></div>
+      <div class="text">
+        <p>Сам по себе IPFS не гарантирует, что файл кто-то продолжит хранить. Узел может в любой момент удалить блоки. Эту проблему решают сети с экономическими стимулами. В Filecoin, основная сеть которого работает с 2020 года, провайдеры заключают сделки на хранение и регулярно публикуют в блокчейне криптографические доказательства. Proof-of-Replication подтверждает, что создана уникальная физическая копия данных, а Proof-of-Spacetime — что копия хранится весь срок сделки<span class="cite"><a href="#src">[11]</a></span>.</p>
+        <p>Arweave предлагает модель «плати один раз — храни всегда». Единовременная плата поступает в эндаумент-фонд, рассчитанный минимум на 200 лет хранения. Расчёт опирается на консервативное допущение, что стоимость хранения дешевеет лишь на 0,5 % в год, тогда как за последние 50 лет она снижалась в среднем примерно на 30 % в год<span class="cite"><a href="#src">[12]</a></span>.</p>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Система</th><th>Модель</th><th>Чем гарантируется хранение</th><th>Для чего подходит</th></tr></thead>
+          <tbody>
+            <tr><td>IPFS (2015)</td><td>P2P-сеть с адресацией по содержимому</td><td>Проверка целостности по CID, хранение за счёт «пиннинга»</td><td>Распространение контента, NFT, научные данные</td></tr>
+            <tr><td>Filecoin (2020)</td><td>Рынок сделок на хранение</td><td>Доказательства PoRep и PoSt, залоги провайдеров</td><td>Архивы и большие коллекции</td></tr>
+            <tr><td>Arweave (2018)</td><td>Бессрочное хранение («permaweb»)</td><td>Эндаумент-фонд, доказательство доступа к случайным блокам</td><td>Неизменяемые публикации и метаданные</td></tr>
+            <tr><td>Storj (2020)</td><td>S3-совместимое децентрализованное облако</td><td>Шифрование, помехоустойчивое кодирование, аудит узлов</td><td>Корпоративное хранение, медиа</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="text" style="margin-top:28px">
+        <p>Отрасль переходит от экспериментов к реальному использованию. По данным аналитического агентства Messari, во втором квартале 2023 года в сети Filecoin было занято менее 8 % ёмкости<span class="cite"><a href="#src">[13]</a></span>. К третьему кварталу 2025 года объём активно хранимых данных вырос до 1 110 ПиБ, а коэффициент использования достиг 36 %<span class="cite"><a href="#src">[14]</a></span>. Сеть смещается от наращивания пустых мощностей к реальному спросу, в том числе со стороны учреждений культуры.</p>
+      </div>
+      <figure>
+        <svg class="chart" viewBox="0 0 640 260" role="img" aria-labelledby="chart1t chart1d" style="width:100%;height:auto">
+          <title id="chart1t">Коэффициент использования сети Filecoin</title>
+          <desc id="chart1d">II квартал 2023 года — около 7,8 процента, II квартал 2025 — 32 процента, III квартал 2025 — 36 процентов.</desc>
+          <g class="grid"><line x1="150" y1="30" x2="150" y2="220"/><line x1="290" y1="30" x2="290" y2="220"/><line x1="430" y1="30" x2="430" y2="220"/><line x1="570" y1="30" x2="570" y2="220"/></g>
+          <text class="mutedt" x="150" y="240" font-size="12" text-anchor="middle">0 %</text>
+          <text class="mutedt" x="290" y="240" font-size="12" text-anchor="middle">10 %</text>
+          <text class="mutedt" x="430" y="240" font-size="12" text-anchor="middle">20 %</text>
+          <text class="mutedt" x="570" y="240" font-size="12" text-anchor="middle">30 %</text>
+          <text x="140" y="68" font-size="14" text-anchor="end">II кв. 2023</text>
+          <rect x="150" y="50" width="109" height="28" style="fill:var(--line)"/>
+          <text x="266" y="69" font-size="14">7,8 %</text>
+          <text x="140" y="128" font-size="14" text-anchor="end">II кв. 2025</text>
+          <rect x="150" y="110" width="448" height="28" style="fill:var(--patina);opacity:.65"/>
+          <text x="604" y="129" font-size="14">32 %</text>
+          <text x="140" y="188" font-size="14" text-anchor="end">III кв. 2025</text>
+          <rect x="150" y="170" width="504" height="28" style="fill:var(--patina)"/>
+          <text x="604" y="164" font-size="14" font-weight="600">36 %</text>
+        </svg>
+        <figcaption><b>РИС. 2</b>Доля использованной ёмкости сети Filecoin. Данные Messari [13, 14].</figcaption>
+      </figure>
+    </section>
+
+    <!-- 7 -->
+    <section class="chapter" id="cases" data-title="Кейсы: кто уже доверил наследие сети">
+      <div class="chapter-head"><span class="num">Глава 7</span><h2>Кейсы: кто уже доверил наследие сети</h2><button class="listen" type="button" data-target="cases"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Слушать главу</button></div>
+      <div class="text">
+        <p>По данным Filecoin Foundation, к февралю 2025 года в сети Filecoin было размещено более 500 тысяч культурно значимых цифровых объектов<span class="cite"><a href="#src">[15]</a></span>. Среди участников — Национальный музей американской истории Смитсоновского института. Он загружает около 300 оцифрованных звукозаписей Александра Грейама Белла, сделанных в 1881–1889 годах. Flickr Foundation размещает тысячу самых просматриваемых фотографий из программы Flickr Commons, в том числе из собраний Национального архива США, NASA и Библиотеки Конгресса. Internet Archive переносит веб-архив End of Term, который фиксирует сайты органов власти США при смене администраций.</p>
+        <p>Особенно показателен опыт Starling Lab, исследовательского центра Стэнфордского университета и Фонда Шоа Университета Южной Калифорнии. Лаборатория запустила в библиотеках USC узел хранения ёмкостью 22 петабайта. На нём хранятся фрагменты Визуального исторического архива Фонда Шоа, фотожурналистские материалы и 3D/VR-сканы исторических объектов<span class="cite"><a href="#src">[15]</a></span>. Работа строится по трёхшаговой схеме Starling Framework. На этапе «захвата» к объекту в момент создания добавляются подпись и метаданные. На этапе «хранения» копии размещаются в IPFS и Filecoin у нескольких независимых провайдеров. На этапе «проверки» хеши и история изменений регистрируются в распределённых реестрах, и любой может сам убедиться в подлинности свидетельства<span class="cite"><a href="#src">[16]</a></span>.</p>
+      </div>
+      <ol class="timeline" aria-label="Хронология событий">
+        <li><div class="d">март 2021</div><div><h3>Beeple продаёт NFT за 69,3 млн долл.<span class="tag art">искусство</span></h3><p>Работа «Everydays: The First 5000 Days» продана на аукционе Christie's [17].</p></div></li>
+        <li><div class="d">июнь 2021</div><div><h3>Запуск Starling Lab<span class="tag case">кейс</span></h3><p>Стэнфорд и Фонд Шоа USC объявляют о создании лаборатории доверенных цифровых записей [16].</p></div></li>
+        <li><div class="d">сент. 2021</div><div><h3>Эрмитаж продаёт NFT-копии пяти картин<span class="tag art">искусство</span></h3><p>Итог аукциона на Binance — 444,5 тыс. долл., из них «Мадонна Литта» — 150,5 тыс. [18, 19].</p></div></li>
+        <li><div class="d">окт. 2023</div><div><h3>Атака на Британскую библиотеку<span class="tag risk">риск</span></h3><p>Программа-вымогатель Rhysida выводит из строя цифровые сервисы на месяцы [2].</p></div></li>
+        <li><div class="d">окт. 2024</div><div><h3>Утечка и DDoS-атаки на Internet Archive<span class="tag risk">риск</span></h3><p>Данные около 31 млн учётных записей, временная недоступность Wayback Machine [3].</p></div></li>
+        <li><div class="d">февр. 2025</div><div><h3>500 тысяч культурных объектов в Filecoin<span class="tag case">кейс</span></h3><p>Smithsonian, Flickr Foundation, Internet Archive, MIT, Starling Lab [15].</p></div></li>
+        <li><div class="d">окт. 2025</div><div><h3>Триллион страниц в Wayback Machine<span class="tag case">кейс</span></h3><p>Internet Archive отмечает рубеж в истории веб-архивирования [1].</p></div></li>
+      </ol>
+    </section>
+
+    <!-- 8 -->
+    <section class="chapter" id="nft" data-title="NFT: токен вечен, а картина?">
+      <div class="chapter-head"><span class="num">Глава 8</span><h2>NFT: токен вечен, а картина?</h2><button class="listen" type="button" data-target="nft"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Слушать главу</button></div>
+      <div class="text">
+        <p>Второе направление, где Web 3.0 изменил мир искусства, — невзаимозаменяемые токены (NFT). Стандарт ERC-721 описывает токен как уникальную запись в блокчейне Ethereum. Запись содержит ссылку tokenURI на файл метаданных, а тот, в свою очередь, ссылается на само произведение<span class="cite"><a href="#src">[20]</a></span>. В 2021 году Государственный Эрмитаж выпустил NFT-версии «Мадонны Литты» Леонардо да Винчи, «Юдифи» Джорджоне, «Куста сирени» Ван Гога, «Композиции VI» Кандинского и «Уголка сада в Монжероне» Моне. По замыслу музея, каждая картина выпускалась в двух токенах, один из которых остаётся в Эрмитаже<span class="cite"><a href="#src">[18]</a></span>.</p>
+        <p>Но у NFT есть уязвимое место. Блокчейн хранит токен, но обычно не хранит само произведение. Если файл лежит на обычном сервере, его исчезновение превращает дорогой токен в ссылку в никуда. Исследование метаданных самых продаваемых NFT на площадке OpenSea показало, что почти треть из них хранится на централизованных серверах облачных провайдеров<span class="cite"><a href="#src">[21]</a></span>.</p>
+      </div>
+      <figure>
+        <svg class="chart" viewBox="0 0 640 230" role="img" aria-labelledby="chart2t chart2d" style="width:100%;height:auto">
+          <title id="chart2t">Где хранятся метаданные популярных NFT</title>
+          <desc id="chart2d">IPFS — 38,8 процента, централизованные серверы — 31,7, в самом блокчейне — 25,6, не определено — 3,9.</desc>
+          <rect x="20" y="40" width="233" height="56" style="fill:var(--patina)"/>
+          <rect x="253" y="40" width="190" height="56" style="fill:var(--alert)"/>
+          <rect x="443" y="40" width="154" height="56" style="fill:var(--brass)"/>
+          <rect x="597" y="40" width="23" height="56" style="fill:var(--line)"/>
+          <text x="30" y="75" font-size="16" font-weight="600" style="fill:var(--paper)">38,8 %</text>
+          <text x="263" y="75" font-size="16" font-weight="600" style="fill:var(--paper)">31,7 %</text>
+          <text x="453" y="75" font-size="16" font-weight="600" style="fill:var(--paper)">25,6 %</text>
+          <rect x="20" y="130" width="14" height="14" style="fill:var(--patina)"/><text x="42" y="142" font-size="14">IPFS (децентрализованно)</text>
+          <rect x="330" y="130" width="14" height="14" style="fill:var(--alert)"/><text x="352" y="142" font-size="14">Централизованные серверы</text>
+          <rect x="20" y="166" width="14" height="14" style="fill:var(--brass)"/><text x="42" y="178" font-size="14">В самом блокчейне (on-chain)</text>
+          <rect x="330" y="166" width="14" height="14" style="fill:var(--line)"/><text x="352" y="178" font-size="14">Не определено — 3,9 %</text>
+        </svg>
+        <figcaption><b>РИС. 3</b>Способы хранения метаданных популярных NFT. Данные исследования Х. Салема [21].</figcaption>
+      </figure>
+      <div class="text" style="margin-top:28px">
+        <p>Отраслевые данные подтверждают масштаб проблемы. По оценке сервиса Pinata (май 2025 года), из тысячи крупнейших коллекций NFT по объёму продаж на IPFS хранятся 327, на централизованных серверах — 277, а у 98 коллекций метаданные уже недоступны<span class="cite"><a href="#src">[22]</a></span>. Исследователь цифрового искусства Джейсон Бейли ещё в 2022 году предупреждал, что больше половины NFT в типичной коллекции, скорее всего, «сломаются» в ближайшие пять лет<span class="cite"><a href="#src">[23]</a></span>. Решение известно: хранить файл в IPFS с закреплением в Filecoin или в Arweave. Тогда по CID будет получен именно тот файл, который был токенизирован.</p>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section class="chapter" id="museum" data-title="Как может выглядеть архив музея">
+      <div class="chapter-head"><span class="num">Глава 9</span><h2>Как может выглядеть архив музея</h2><button class="listen" type="button" data-target="museum"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Слушать главу</button></div>
+      <div class="text">
+        <p>Опыт Starling Lab и других проектов можно обобщить в гибридную архитектуру цифрового архива учреждения культуры. Порядок работы такой:</p>
+        <ul>
+          <li>оцифрованные объекты получают стандартизированные метаданные (Dublin Core, LIDO) и электронную подпись учреждения, а материалы с ограниченным доступом шифруются;</li>
+          <li>файлы публикуются в IPFS и закрепляются на узлах музеев-партнёров;</li>
+          <li>долговременные копии размещаются в Filecoin или на собственных узлах хранения, ключевые метаданные — в Arweave;</li>
+          <li>CID, хеши и история провенанса фиксируются в распределённом реестре, чтобы любой пользователь мог проверить подлинность объекта.</li>
+        </ul>
+      </div>
+      <figure class="wide">
+        <div class="plate" style="overflow-x:auto"><img src="img/museum.jpg" alt="Схема гибридной архитектуры архива: источники, подготовка метаданных, IPFS, далее Filecoin, Arweave и блокчейн-реестр, затем пользователи" width="2886" height="617" loading="lazy" style="min-width:640px"></div>
+        <figcaption><b>РИС. 4</b>Гибридная архитектура децентрализованного цифрового архива учреждения культуры.</figcaption>
+      </figure>
+      <div class="text" style="margin-top:28px">
+        <p>Для России важен правовой контекст. Сведения о музейных предметах вносятся в Государственный каталог Музейного фонда, ведение которого предусмотрено Федеральным законом № 54-ФЗ<span class="cite"><a href="#src">[24]</a></span>. Федеральный проект «Цифровая культура» национального проекта «Культура» предусматривал к 2024 году 500 виртуальных концертных залов, оцифровку 48 тысяч книжных памятников для Национальной электронной библиотеки и 450 мультимедиа-гидов с дополненной реальностью<span class="cite"><a href="#src">[25]</a></span>. Персональные данные граждан РФ при сборе нужно хранить в базах данных на территории России (Федеральный закон № 152-ФЗ)<span class="cite"><a href="#src">[26]</a></span>. Поэтому реалистичный вариант для отечественных музеев — федеративная сеть IPFS-узлов внутри страны: в федеральных музеях, региональных библиотеках и университетах.</p>
+      </div>
+    </section>
+
+    <!-- 10 -->
+    <section class="chapter" id="limits" data-title="Ограничения и риски">
+      <div class="chapter-head"><span class="num">Глава 10</span><h2>Ограничения и риски</h2><button class="listen" type="button" data-target="limits"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Слушать главу</button></div>
+      <div class="text">
+        <p>Децентрализованное хранение не волшебная палочка. У технологии есть ограничения, о которых нужно знать до старта проекта:</p>
+        <ul>
+          <li><b>Скорость.</b> Поиск и загрузка данных медленнее, чем у CDN и классических облаков, поэтому на практике используют HTTP-шлюзы. Они частично возвращают централизацию.</li>
+          <li><b>Экономика.</b> Стоимость и надёжность хранения зависят от курса криптотокенов и от интереса провайдеров к сети.</li>
+          <li><b>Право на забвение.</b> Неизменяемость данных плохо сочетается с требованием удалять персональные данные и незаконный контент.</li>
+          <li><b>Законодательство.</b> Требования к локализации данных ограничивают использование глобальных публичных сетей.</li>
+          <li><b>Сложность.</b> Ключи шифрования и криптокошельки требуют от сотрудников музеев новых навыков.</li>
+        </ul>
+        <p>Поэтому на практике побеждают гибридные решения. Публичные децентрализованные сети, узлы партнёров и традиционные облака сочетаются так, чтобы ни один сбой не уничтожил коллекцию целиком.</p>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="chapter" id="conclusions" data-title="Выводы">
+      <div class="chapter-head"><span class="num">Глава 11</span><h2>Выводы</h2><button class="listen" type="button" data-target="conclusions"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Слушать главу</button></div>
+      <ol class="conclusions">
+        <li><p>Централизованное хранение цифрового наследия уязвимо. Атаки на Британскую библиотеку и Internet Archive показали, что один сбой может на месяцы лишить доступа к целой коллекции.</p></li>
+        <li><p>Децентрализованное хранение меняет принцип адресации. CID зависит только от содержимого, поэтому любой пользователь может проверить подлинность полученного файла.</p></li>
+        <li><p>Надёжность создаёт избыточность: копии у независимых участников и экономические стимулы (Filecoin, Arweave) делают сохранность проверяемой, а не обещанной.</p></li>
+        <li><p>Ведущие институции уже используют технологию. В Filecoin размещено более 500 тысяч культурных объектов, а Starling Lab доказывает подлинность исторических свидетельств.</p></li>
+        <li><p>Для цифрового искусства децентрализованное хранение — условие долговечности. Без него NFT превращается в ссылку на исчезнувший файл.</p></li>
+        <li><p>Для российских учреждений культуры перспективна федеративная сеть узлов внутри страны. Она соответствует законодательству и сохраняет главные преимущества децентрализации.</p></li>
+      </ol>
+    </section>
+
+    <!-- 12 -->
+    <section class="chapter" id="src" data-title="Исследования, статьи и кейсы">
+      <div class="chapter-head"><span class="num">Глава 12</span><h2>Исследования, статьи и кейсы</h2></div>
+      <div class="text"><p>Все цифры и факты в лонгриде взяты из источников ниже. Номера в квадратных скобках соответствуют порядку в общем списке.</p></div>
+      <div class="reading">
+        <div>
+          <h3>Исследования</h3>
+          <ul>
+            <li><a href="https://arxiv.org/abs/1407.3561" target="_blank" rel="noopener">[7] Benet J. IPFS — Content Addressed, Versioned, P2P File System</a><span>arXiv, 2014 — исходное описание протокола</span></li>
+            <li><a href="https://probelab.io/publications/design-and-evaluation-of-ipfs-a-storage-layer-for-the-decentralized-web/" target="_blank" rel="noopener">[9] Trautwein D. et al. Design and Evaluation of IPFS</a><span>ACM SIGCOMM 2022 — измерения реальной сети</span></li>
+            <li><a href="https://filecoin.io/filecoin.pdf" target="_blank" rel="noopener">[11] Protocol Labs. Filecoin: A Decentralized Storage Network</a><span>2017 — доказательства PoRep и PoSt</span></li>
+            <li><a href="https://www.arweave.org/yellow-paper.pdf" target="_blank" rel="noopener">[12] Williams S. et al. Arweave Yellow Paper</a><span>Экономика бессрочного хранения</span></li>
+            <li><a href="https://arxiv.org/abs/2408.13281" target="_blank" rel="noopener">[21] Salem H. Hidden Risks: The Centralization of NFT Metadata</a><span>arXiv, 2024</span></li>
+            <li><a href="https://www.itu.int/en/mediacentre/Pages/PR-2025-11-17-Facts-and-Figures.aspx" target="_blank" rel="noopener">[4] ITU. Facts and Figures 2025</a><span>Статистика МСЭ</span></li>
+            <li><a href="https://www.seagate.com/files/www-content/our-story/trends/files/idc-seagate-dataage-whitepaper.pdf" target="_blank" rel="noopener">[5] IDC. The Digitization of the World</a><span>2018 — прогноз объёма данных</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Экспертные статьи</h3>
+          <ul>
+            <li><a href="https://gavwood.com/dappsweb3.html" target="_blank" rel="noopener">[6] Wood G. ĐApps: What Web 3.0 Looks Like</a><span>2014 — текст, давший термину современный смысл</span></li>
+            <li><a href="https://ardrive.io/articles/can-data-really-be-stored-forever/" target="_blank" rel="noopener">[12] ArDrive. Can data really be stored forever?</a><span>Разбор эндаумент-модели Arweave</span></li>
+            <li><a href="https://www.rightclicksave.com/article/the-nft-apocalypse" target="_blank" rel="noopener">[23] Bailey J. The NFT Apocalypse</a><span>Right Click Save, 2022</span></li>
+            <li><a href="https://pinata.cloud/blog/hundreds-of-millions-of-dollars-of-nfts-are-still-unprotected/" target="_blank" rel="noopener">[22] Hunter J. Hundreds of Millions of Dollars of NFTs Are Still Unprotected</a><span>Pinata, 2025</span></li>
+            <li><a href="https://cointelegraph.com/news/filecoin-storage-utilization-surpass-7-percent-in-q2-report" target="_blank" rel="noopener">[13] Cointelegraph. Filecoin storage utilization surpasses 7%</a><span>По данным Messari, 2023</span></li>
+            <li><a href="https://www.tronweekly.com/filecoin-storage-utilization-hits-36/" target="_blank" rel="noopener">[14] TronWeekly. Filecoin storage utilization hits 36%</a><span>По данным Messari, 2025</span></li>
+            <li><a href="https://storj.dev/learn" target="_blank" rel="noopener">[10] Storj Docs. Product Overview</a><span>Шифрование и помехоустойчивое кодирование</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Практические кейсы</h3>
+          <ul>
+            <li><a href="https://upload.fil.org/p/over-500-000-cultural-artifacts-now-stored-on-filecoin" target="_blank" rel="noopener">[15] Over 500,000 Cultural Artifacts Now Stored on Filecoin</a><span>Filecoin Foundation, 2025</span></li>
+            <li><a href="https://filecoin.io/blog/starling-lab-establishing-trust-for-humanity-s-data" target="_blank" rel="noopener">[16] Starling Lab: Establishing Trust for Humanity's Data</a><span>Filecoin, 2021</span></li>
+            <li><a href="https://www.bl.uk/home/british-library-cyber-incident-review-8-march-2024.pdf" target="_blank" rel="noopener">[2] British Library Cyber Incident Review</a><span>Британская библиотека, 2024</span></li>
+            <li><a href="https://www.infosecurity-magazine.com/news/internet-archive-breach-31m/" target="_blank" rel="noopener">[3] Internet Archive Breached, 31 Million Records Exposed</a><span>Infosecurity Magazine, 2024</span></li>
+            <li><a href="https://blog.archive.org/2025/10/31/one-trillion-web-pages-archived-internet-archive-celebrates-a-civilization-scale-milestone/" target="_blank" rel="noopener">[1] One Trillion Web Pages Archived</a><span>Internet Archive, 2025</span></li>
+            <li><a href="https://meduza.io/news/2021/09/07/ermitazh-prodal-kartinu-leonardo-da-vinchi-v-vide-nft-za-150-tysyach-dollarov" target="_blank" rel="noopener">[19] Эрмитаж продал картину Леонардо да Винчи в виде NFT</a><span>Meduza, 2021</span></li>
+            <li><a href="https://incrussia.ru/news/hermitage-nft/" target="_blank" rel="noopener">[18] Эрмитаж выпустит NFT-версии картин</a><span>Inc. Russia, 2021</span></li>
+            <li><a href="https://decrypt.co/60971/beeples-nft-artwork-sells-for-60-3-million-in-christies-auction" target="_blank" rel="noopener">[17] Beeple NFT Artwork Sells for $69.3 Million</a><span>Decrypt, 2021</span></li>
+          </ul>
+        </div>
+      </div>
+      <details style="margin-top:28px;max-width:var(--measure)">
+        <summary style="cursor:pointer;font-weight:500">Прочие источники</summary>
+        <ul style="margin-top:12px;display:grid;gap:8px;font-size:15px">
+          <li>[8] Maymounkov P., Mazières D. Kademlia: A Peer-to-Peer Information System Based on the XOR Metric. IPTPS 2002. Springer, LNCS 2429, p. 53–65.</li>
+          <li>[20] <a href="https://eips.ethereum.org/EIPS/eip-721" target="_blank" rel="noopener">Entriken W. et al. ERC-721: Non-Fungible Token Standard, 2018</a></li>
+          <li>[24] <a href="https://www.consultant.ru/document/cons_doc_LAW_10496/" target="_blank" rel="noopener">Федеральный закон от 26.05.1996 № 54-ФЗ «О Музейном фонде Российской Федерации и музеях в Российской Федерации»</a></li>
+          <li>[25] Паспорт национального проекта «Культура», утв. президиумом Совета при Президенте РФ, протокол от 24.12.2018 № 16</li>
+          <li>[26] <a href="https://www.consultant.ru/document/cons_doc_LAW_61801/" target="_blank" rel="noopener">Федеральный закон от 27.07.2006 № 152-ФЗ «О персональных данных»</a></li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <span>Лабораторная работа № 2 · дисциплина «Интернет-технологии» · МГТУ «СТАНКИН»</span>
+  <span>Данила Соловьев, ИДМ-26-01 · 2026</span>
+</footer>
+
+<script>
+(function(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  /* ---------- оглавление ---------- */
+  const chapters = [...document.querySelectorAll('section.chapter')];
+  const tocList = document.getElementById('tocList'), tocMobile = document.getElementById('tocMobile');
+  chapters.forEach(s => {
+    const mk = () => { const li = document.createElement('li'); const a = document.createElement('a'); a.href = '#' + s.id; a.textContent = s.dataset.title; li.appendChild(a); return li; };
+    tocList.appendChild(mk()); const m = mk(); m.querySelector('a').addEventListener('click', () => document.querySelector('.toc-mobile').open = false); tocMobile.appendChild(m);
+  });
+  const links = [...tocList.querySelectorAll('a')];
+  function onScroll(){
+    const h = document.documentElement; const max = h.scrollHeight - h.clientHeight;
+    document.getElementById('progress').style.width = (max > 0 ? (h.scrollTop / max * 100) : 0) + '%';
+    let cur = chapters[0].id;
+    for (const s of chapters) if (s.getBoundingClientRect().top < 140) cur = s.id;
+    links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + cur));
+  }
+  addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+  /* ---------- озвучка (Web Speech API) ---------- */
+  const synth = window.speechSynthesis; let speakingBtn = null;
+  const buttons = [...document.querySelectorAll('.listen')];
+  function ruVoice(){ try { return (synth.getVoices() || []).find(v => /^ru/i.test(v.lang)) || null; } catch(e){ return null; } }
+  function stop(){ try { synth && synth.cancel(); } catch(e){} if (speakingBtn){ speakingBtn.setAttribute('aria-pressed','false'); speakingBtn.lastChild.textContent = 'Слушать главу'; } speakingBtn = null; }
+  if (!synth || typeof SpeechSynthesisUtterance === 'undefined') {
+    buttons.forEach(b => { b.disabled = true; b.title = 'Браузер не поддерживает синтез речи'; b.lastChild.textContent = 'Озвучка недоступна'; });
+  } else {
+    buttons.forEach(b => b.addEventListener('click', () => {
+      if (speakingBtn === b) { stop(); return; }
+      stop();
+      const sec = document.getElementById(b.dataset.target);
+      const parts = [sec.querySelector('h2').textContent];
+      sec.querySelectorAll('.text p, .text li, .conclusions li').forEach(n => parts.push(n.textContent.replace(/\[\d+(,\s*\d+)*\]/g,'')));
+      const chunks = parts.join('. ').match(/[^.!?]+[.!?]*/g) || [];
+      const v = ruVoice(); let i = 0;
+      speakingBtn = b; b.setAttribute('aria-pressed','true'); b.lastChild.textContent = 'Остановить';
+      const next = () => {
+        if (speakingBtn !== b) return;
+        if (i >= chunks.length) { stop(); return; }
+        const u = new SpeechSynthesisUtterance(chunks[i++].trim()); u.lang = 'ru-RU'; if (v) u.voice = v; u.rate = 1;
+        u.onend = next; u.onerror = () => stop(); synth.speak(u);
+      };
+      next();
+    }));
+  }
+
+  /* ---------- SHA-256 ---------- */
+  function sha256js(str){ // запасной вариант, если crypto.subtle недоступен
+    const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    const b=new TextEncoder().encode(str); const l=b.length; const n=((l+9+63)>>6)<<6; const m=new Uint8Array(n); m.set(b); m[l]=0x80;
+    const dv=new DataView(m.buffer); dv.setUint32(n-4,(l*8)>>>0); dv.setUint32(n-8,Math.floor(l/0x20000000));
+    let H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]; const w=new Uint32Array(64); const r=(x,y)=>(x>>>y)|(x<<(32-y));
+    for(let o=0;o<n;o+=64){ for(let i=0;i<16;i++) w[i]=dv.getUint32(o+i*4);
+      for(let i=16;i<64;i++){const s0=r(w[i-15],7)^r(w[i-15],18)^(w[i-15]>>>3), s1=r(w[i-2],17)^r(w[i-2],19)^(w[i-2]>>>10); w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0;}
+      let [a,bb,c,d,e,f,g,h]=H;
+      for(let i=0;i<64;i++){const S1=r(e,6)^r(e,11)^r(e,25), ch=(e&f)^(~e&g), t1=(h+S1+ch+K[i]+w[i])>>>0, S0=r(a,2)^r(a,13)^r(a,22), mj=(a&bb)^(a&c)^(bb&c), t2=(S0+mj)>>>0; h=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=bb;bb=a;a=(t1+t2)>>>0;}
+      H=H.map((x,i)=>(x+[a,bb,c,d,e,f,g,h][i])>>>0); }
+    return H.map(x=>x.toString(16).padStart(8,'0')).join('');
+  }
+  async function sha256(str){
+    try { if (crypto && crypto.subtle) { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)); return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join(''); } } catch(e){}
+    return sha256js(str);
+  }
+  const input = document.getElementById('hashInput'), ORIG = input.value; let baseHash = '';
+  const hb = document.getElementById('hashBase'), hn = document.getElementById('hashNow'), note = document.getElementById('hashNote');
+  async function upd(){
+    const h = await sha256(input.value);
+    hn.innerHTML = ''; let diff = 0;
+    for (let i=0;i<h.length;i++){ const s=document.createElement('span'); s.textContent=h[i]; if (h[i]!==baseHash[i]){ s.className='diff'; diff++; } hn.appendChild(s); }
+    note.textContent = input.value === ORIG ? 'Текст совпадает с исходным — хеши одинаковы.' : `Изменилось ${diff} из 64 символов хеша. По такому отпечатку подмену видно сразу.`;
+  }
+  sha256(ORIG).then(h => { baseHash = h; hb.textContent = h; upd(); });
+  input.addEventListener('input', upd);
+  document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    const e = c.dataset.edit;
+    if (e==='reset') input.value = ORIG;
+    else if (e==='dot') input.value = input.value.replace(/\.$/,'') === input.value ? input.value + '.' : input.value.replace(/\.$/,'');
+    else if (e==='year') input.value = input.value.includes('1490') ? input.value.replace('1490','1491') : input.value.replace('1491','1490');
+    upd();
+  }));
+
+  /* ---------- симуляция сети ---------- */
+  const svg = document.getElementById('simSvg'), NS = 'http://www.w3.org/2000/svg';
+  const names = ['Эрмитаж','Русский музей','Библиотека','Университет','Архив','Музей ИЗО','Фонд','Провайдер'];
+  // каждый блок у трёх узлов
+  const holders = {A:[0,3,6],B:[1,4,7],C:[2,5,0],D:[3,6,1]};
+  const N = names.length, cx=260, cy=210, R=160;
+  const pos = names.map((_,i)=>[cx+R*Math.cos(2*Math.PI*i/N-Math.PI/2), cy+R*Math.sin(2*Math.PI*i/N-Math.PI/2)]);
+  let off = new Set(), mode = 'p2p', serverOff = false;
+  const blocksEl = document.getElementById('simBlocks'), statusEl = document.getElementById('simStatus'), infoEl = document.getElementById('simInfo');
+  function el(t,a){ const e=document.createElementNS(NS,t); for (const k in a) e.setAttribute(k,a[k]); return e; }
+  function draw(){
+    svg.innerHTML='';
+    const line = css('--line'), pat = css('--patina'), alert = css('--alert'), ink = css('--ink'), paper = css('--paper'), muted = css('--muted');
+    if (mode==='p2p'){
+      for (let i=0;i<N;i++) for (let j=i+1;j<N;j++){ const d=(j-i)%N; if (d===1||d===2||d===N-1||d===N-2){ svg.appendChild(el('line',{x1:pos[i][0],y1:pos[i][1],x2:pos[j][0],y2:pos[j][1],stroke:line,'stroke-width':(off.has(i)||off.has(j))?1:2,'stroke-dasharray':(off.has(i)||off.has(j))?'4 4':''})); } }
+      pos.forEach(([x,y],i)=>{
+        const g = el('g',{class:'node',tabindex:0,role:'button','aria-pressed':off.has(i)?'true':'false','aria-label':names[i]+(off.has(i)?', отключён':', работает')});
+        const isOff = off.has(i);
+        g.appendChild(el('circle',{cx:x,cy:y,r:34,fill:isOff?paper:css('--patina-soft'),stroke:isOff?alert:pat,'stroke-width':3}));
+        const blk = Object.keys(holders).filter(k=>holders[k].includes(i)).join(' ');
+        const t1 = el('text',{x,y:y+5,'text-anchor':'middle','font-size':14,'font-family':'IBM Plex Mono, monospace',fill:isOff?alert:ink}); t1.textContent = isOff?'×':blk; g.appendChild(t1);
+        const t2 = el('text',{x,y:y+(y>cy?52:-44),'text-anchor':'middle','font-size':13,fill:muted}); t2.textContent = names[i]; g.appendChild(t2);
+        const tog = ()=>{ off.has(i)?off.delete(i):off.add(i); draw(); };
+        g.addEventListener('click',tog); g.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); }});
+        svg.appendChild(g);
+      });
+    } else {
+      pos.forEach(([x,y],i)=>{ svg.appendChild(el('line',{x1:x,y1:y,x2:cx,y2:cy,stroke:line,'stroke-width':1.5,'stroke-dasharray':serverOff?'4 4':''})); const c=el('circle',{cx:x,cy:y,r:16,fill:paper,stroke:muted,'stroke-width':1.5}); svg.appendChild(c); const t=el('text',{x,y:y+(y>cy?34:-24),'text-anchor':'middle','font-size':12,fill:muted}); t.textContent=names[i]; svg.appendChild(t); });
+      const g = el('g',{class:'node',tabindex:0,role:'button','aria-pressed':serverOff?'true':'false','aria-label':'Центральный сервер'+(serverOff?', отключён':', работает')});
+      g.appendChild(el('rect',{x:cx-60,y:cy-40,width:120,height:80,rx:10,fill:serverOff?paper:css('--patina-soft'),stroke:serverOff?alert:pat,'stroke-width':3}));
+      const t=el('text',{x:cx,y:cy-4,'text-anchor':'middle','font-size':14,fill:serverOff?alert:ink}); t.textContent=serverOff?'сервер ×':'сервер'; g.appendChild(t);
+      const t2=el('text',{x:cx,y:cy+18,'text-anchor':'middle','font-size':13,'font-family':'IBM Plex Mono, monospace',fill:serverOff?alert:ink}); t2.textContent='A B C D'; g.appendChild(t2);
+      const tog=()=>{ serverOff=!serverOff; draw(); };
+      g.addEventListener('click',tog); g.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); }});
+      svg.appendChild(g);
+    }
+    // статус
+    blocksEl.innerHTML=''; let lost=0;
+    Object.keys(holders).forEach(k=>{ const alive = mode==='p2p' ? holders[k].filter(i=>!off.has(i)).length : (serverOff?0:1); const d=document.createElement('div'); d.className='blk '+(alive?'ok':'lost'); d.textContent = k+' · '+alive; d.title = 'Доступных копий: '+alive; blocksEl.appendChild(d); if(!alive) lost++; });
+    statusEl.className = 'status '+(lost?'bad':'ok');
+    statusEl.textContent = lost ? `Коллекция повреждена: потеряно блоков — ${lost}` : 'Коллекция доступна полностью';
+    infoEl.textContent = mode==='p2p' ? `Отключено узлов: ${off.size} из ${N}. Цифра на блоке — число доступных копий.` : (serverOff?'Единственный сервер отключён — все блоки потеряны.':'Все блоки хранятся на одном сервере. Нажмите на него.');
+  }
+  document.getElementById('simRandom').addEventListener('click',()=>{ if(mode==='central'){ serverOff=true; } else { const on=[...Array(N).keys()].filter(i=>!off.has(i)); if(on.length) off.add(on[Math.floor(Math.random()*on.length)]); } draw(); });
+  document.getElementById('simReset').addEventListener('click',()=>{ off.clear(); serverOff=false; draw(); });
+  const bP=document.getElementById('modeP2P'), bC=document.getElementById('modeCentral');
+  bP.addEventListener('click',()=>{ mode='p2p'; bP.setAttribute('aria-pressed','true'); bC.setAttribute('aria-pressed','false'); draw(); });
+  bC.addEventListener('click',()=>{ mode='central'; bC.setAttribute('aria-pressed','true'); bP.setAttribute('aria-pressed','false'); draw(); });
+  draw();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+  /* ---------- анимация в шапке ---------- */
+  const cv = document.getElementById('heroNet'), ctx = cv.getContext('2d');
+  let pts=[], W=0, H=0, dpr=Math.min(2, window.devicePixelRatio||1);
+  function size(){ const r=cv.getBoundingClientRect(); W=r.width; H=r.height; cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    if(!pts.length){ let s=7; const rnd=()=>{ s=(s*16807)%2147483647; return s/2147483647; }; for(let i=0;i<26;i++) pts.push({x:rnd(),y:rnd(),vx:(rnd()-.5)*.0006,vy:(rnd()-.5)*.0006,k:i%4}); } }
+  function frame(tm){
+    ctx.clearRect(0,0,W,H);
+    const pat=css('--patina'), brass=css('--brass'), line=css('--line'), ink=css('--ink');
+    pts.forEach(p=>{ if(!reduce){ p.x+=p.vx; p.y+=p.vy; if(p.x<.05||p.x>.95) p.vx*=-1; if(p.y<.05||p.y>.95) p.vy*=-1; } });
+    for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++){ const a=pts[i], b=pts[j]; const dx=(a.x-b.x)*W, dy=(a.y-b.y)*H, d=Math.hypot(dx,dy); if(d<W*.26){ ctx.strokeStyle=line; ctx.globalAlpha=1-d/(W*.26); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a.x*W,a.y*H); ctx.lineTo(b.x*W,b.y*H); ctx.stroke(); } }
+    ctx.globalAlpha=1;
+    const pulse = reduce?0:(tm/1400)%pts.length;
+    pts.forEach((p,i)=>{ const hot = Math.floor(pulse)===i; ctx.fillStyle = p.k===0?brass:pat; ctx.beginPath(); ctx.arc(p.x*W,p.y*H,hot?7:4.5,0,Math.PI*2); ctx.fill(); if(hot){ ctx.strokeStyle=pat; ctx.globalAlpha=.5; ctx.beginPath(); ctx.arc(p.x*W,p.y*H,14,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1; } });
+    ctx.fillStyle=ink; ctx.font='12px "IBM Plex Mono", monospace'; ctx.globalAlpha=.7; ctx.fillText('CID bafybei…', pts[0].x*W+10, pts[0].y*H-10); ctx.globalAlpha=1;
+    if(!reduce) requestAnimationFrame(frame);
+  }
+  size(); addEventListener('resize',()=>{ size(); if(reduce) frame(0); }); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
